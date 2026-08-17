@@ -11,16 +11,16 @@
             ; _  .  __  :
             `.,' - `-. ,'
               `, `_  .'
-              /       \
-             /         :
-            :          |_
+              /        \
+             /          :
+            :           |_
            ,|  .    .  | \
           : :   \   |  |  :
           |  \   :`-;  ;  |
           :   :  | /  /   ;
            :-.'  ;'  / _,'`------.
            `'`''-`'''-'-''--.---  )
-                           `----'-->
+                            `----'-->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hello! 🌸</title>
@@ -28,31 +28,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
-    /* ANIMATED CURSOR */
+    /* ANIMATED CURSOR CANVAS */
 
     @media (pointer: fine) {
       *, *::before, *::after {
         cursor: none !important; 
       }
 
-      #cursor {
+      #cursorCanvas {
         position: fixed;
         top: 0;
         left: 0;
-        width: 300px; 
-        height: 300px; 
+        width: 100vw;
+        height: 100vh;
         pointer-events: none; 
         z-index: 99999;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        will-change: transform;
-        transform: translate3d(-50%, -50%, 0);
       }
     }
 
      @media (pointer: coarse) {
-      #cursor {
+      #cursorCanvas {
         display: none !important;
       }
     }
@@ -150,8 +145,8 @@
     .pink-rectangle p {
       margin-bottom: 15px;
       font-size: 1.5rem;
-      color: ##ffffff;
-	text-shadow: 2px 2px 4px #000000;
+      color: #ffffff;
+      text-shadow: 2px 2px 4px #000000;
     }
 
     /* STYLING LINKS INSIDE RECTANGLE */
@@ -159,10 +154,10 @@
       display: inline-block;
       color: #ffadba;
       text-decoration: none;
-      font-weight: 600;
+      font-weight: 700;
       letter-spacing: 0.05em;
       transition: all 0.3s ease;
-     text-shadow: 0 0 5px rgba(255, 182, 193, 0.5);
+    text-shadow: 1px 1px 3px rgba(40, 20, 40, 0.4);
     }
 
     /* LINK HOVER EFFECT */
@@ -216,44 +211,73 @@
     </div>
   </div>
 
-  <!-- Custom Animated Cursor Element -->
-  <div id="cursor"></div>
+  <!-- Cursor Overlay Canvas -->
+  <canvas id="cursorCanvas"></canvas>
 
   <script>
-
-    // ANIMATED CURSOR MATHS
-
+    // FLICKER-FREE ANIMATED CURSOR LOGIC
     if (window.matchMedia('(pointer: fine)').matches) {
       const TOTAL_FRAMES = 19;
-      const FRAME_SPEED_MS = 60; // Lower = faster animation speed
-      const cursor = document.getElementById('cursor');
+      const FRAME_SPEED_MS = 60;
+      const cursorCanvas = document.getElementById('cursorCanvas');
+      const cctx = cursorCanvas.getContext('2d');
 
-  
-      const frameUrls = [];
+      let mouseX = -300;
+      let mouseY = -300;
+      const loadedImages = [];
+      let imagesReady = false;
+
+      function resizeCursorCanvas() {
+        cursorCanvas.width = window.innerWidth;
+        cursorCanvas.height = window.innerHeight;
+      }
+      resizeCursorCanvas();
+      window.addEventListener('resize', resizeCursorCanvas);
+
+      let loadedCount = 0;
       for (let i = 1; i <= TOTAL_FRAMES; i++) {
         const img = new Image();
-        const src = `${i}.png`; 
-        img.src = src;
-        frameUrls.push(src);
+        img.src = `${i}.png`;
+        img.onload = () => {
+          loadedCount++;
+          if (loadedCount === TOTAL_FRAMES) imagesReady = true;
+        };
+        img.onerror = () => {
+          loadedCount++;
+          if (loadedCount === TOTAL_FRAMES) imagesReady = true;
+        };
+        loadedImages.push(img);
       }
-
-
-      let currentFrame = 0;
-      setInterval(() => {
-        cursor.style.backgroundImage = `url("${frameUrls[currentFrame]}")`;
-        currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
-      }, FRAME_SPEED_MS);
-
-      let mouseX = -100;
-      let mouseY = -100;
 
       window.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
       });
 
-      function renderCursor() {
-        cursor.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+      let currentFrame = 0;
+      let lastFrameTime = performance.now();
+
+      function renderCursor(now) {
+        cctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+
+        if (imagesReady) {
+          if (now - lastFrameTime >= FRAME_SPEED_MS) {
+            currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
+            lastFrameTime = now;
+          }
+
+          const img = loadedImages[currentFrame];
+          const cursorSize = 300; 
+
+          cctx.drawImage(
+            img, 
+            mouseX - cursorSize / 2, 
+            mouseY - cursorSize / 2, 
+            cursorSize, 
+            cursorSize
+          );
+        }
+
         requestAnimationFrame(renderCursor);
       }
 
@@ -261,7 +285,6 @@
     }
 
     // PINK SAKURA LEAVES CANVAS FALLING ANIMATION
-
     const canvas = document.getElementById('bgCanvas');
     const ctx = canvas.getContext('2d');
 
